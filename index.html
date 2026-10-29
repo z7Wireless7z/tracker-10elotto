@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Tracker 10eLotto - Strategia Gruzzoletto</title>
+    <meta name="theme-color" content="#1f2937">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="10eLotto">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <script src="vendor/tailwind.js"></script>
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+    <script src="config.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            transition: background-color 0.4s ease;
+        }
+        /* Sfondo verde quando la giornata di oggi è già registrata */
+        body.giocato-oggi {
+            background-color: #4ade80;
+        }
+        body.giocato-oggi .su-sfondo {
+            color: #052e16;
+            border-color: rgba(5, 46, 22, 0.3);
+        }
+        body.giocato-oggi .su-sfondo button {
+            color: #14532d;
+        }
+        body.giocato-oggi .su-sfondo button:hover:not(:disabled) {
+            color: #052e16;
+        }
+        /* Griglia 10eLotto: 10 colonne x 9 righe che riempiono la bolla */
+        .griglia-numeri {
+            grid-template-rows: repeat(9, minmax(0, 1fr));
+        }
+        /* Rotazione del tasto aggiornamento */
+        .gira {
+            animation: gira 0.5s ease-out;
+        }
+        @keyframes gira {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        /* Custom scrollbar for modals */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+        /* Animations */
+        .fade-in {
+            animation: fadeIn 0.2s ease-out;
+        }
+        .slide-up {
+            animation: slideUp 0.3s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen flex flex-col">
+
+    <!-- HEADER -->
+    <header class="bg-gray-800 border-b border-gray-700 shadow-md sticky top-0 z-10">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-blue-600 p-2 rounded-lg text-white shadow-lg">
+                    <i class="fa-solid fa-chart-line text-xl"></i>
+                </div>
+                <h1 class="text-xl font-bold tracking-tight">Tracker <span class="text-blue-400">10eLotto</span></h1>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button id="btn-installa" onclick="installaApp()" class="hidden bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2 px-3 rounded-lg transition-colors flex items-center space-x-2" title="Installa l'app sul telefono">
+                    <i class="fa-solid fa-download"></i>
+                    <span class="hidden sm:inline">Installa</span>
+                </button>
+                <button onclick="openModal('guide-modal')" class="bg-gray-700 hover:bg-gray-600 text-sm font-semibold py-2 px-4 rounded-lg transition-colors border border-gray-600 flex items-center space-x-2">
+                    <i class="fa-solid fa-book-open"></i>
+                    <span class="hidden sm:inline">Guida Operativa</span>
+                    <span class="sm:hidden">Guida</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-grow max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+
+        <!-- DASHBOARD STATISTICHE -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+            <!-- Cassa Attuale -->
+            <div class="bg-gray-800 rounded-xl p-5 border border-gray-700 shadow-lg relative overflow-hidden group">
+                <div class="absolute top-0 right-0 p-4 opacity-10 text-4xl"><i class="fa-solid fa-wallet"></i></div>
+                <div class="flex justify-between items-center mb-1">
+                    <p class="text-sm font-medium text-gray-400">Cassa Attuale</p>
+                    <button onclick="openEditBalanceModal()" class="text-gray-500 hover:text-blue-400 transition-colors p-1" title="Modifica Cassa">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                    </button>
+                </div>
+                <div class="flex items-baseline space-x-1">
+                    <span id="stat-cassa" class="text-3xl font-bold text-emerald-400">30</span>
+                    <span class="text-emerald-400 font-semibold">€</span>
+                </div>
+                <p id="stat-cassa-dettaglio" class="text-xs text-gray-500 mt-1"></p>
+            </div>
+
+            <!-- Totale Speso -->
+            <div class="bg-gray-800 rounded-xl p-5 border border-gray-700 shadow-lg relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4 opacity-10 text-4xl"><i class="fa-solid fa-arrow-trend-down"></i></div>
+                <p class="text-sm font-medium text-gray-400 mb-1">Totale Speso</p>
+                <div class="flex items-baseline space-x-1">
+                    <span id="stat-speso" class="text-3xl font-bold text-red-400">0</span>
+                    <span class="text-red-400 font-semibold">€</span>
+                </div>
+            </div>
+
+            <!-- Totale Vinto -->
+            <div class="bg-gray-800 rounded-xl p-5 border border-gray-700 shadow-lg relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4 opacity-10 text-4xl"><i class="fa-solid fa-arrow-trend-up"></i></div>
+                <p class="text-sm font-medium text-gray-400 mb-1">Totale Vinto</p>
+                <div class="flex items-baseline space-x-1">
+                    <span id="stat-vinto" class="text-3xl font-bold text-blue-400">0</span>
+                    <span class="text-blue-400 font-semibold">€</span>
+                </div>
+            </div>
+
+            <!-- Giorni Giocati -->
+            <div class="bg-gray-800 rounded-xl p-5 border border-gray-700 shadow-lg relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4 opacity-10 text-4xl"><i class="fa-solid fa-calendar-days"></i></div>
+                <p class="text-sm font-medium text-gray-400 mb-1">Giorni Giocati</p>
+                <div class="flex items-baseline space-x-1">
+                    <span id="stat-giorni" class="text-3xl font-bold text-gray-100">0</span>
+                </div>
+            </div>
+
+            <!-- Netto Reale -->
+            <div class="col-span-2 md:col-span-1 bg-gray-800 rounded-xl p-5 border border-gray-700 shadow-lg relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4 opacity-10 text-4xl"><i class="fa-solid fa-scale-balanced"></i></div>
+                <p class="text-sm font-medium text-gray-400 mb-1">Netto Reale</p>
+                <div class="flex items-baseline space-x-1">
+                    <span id="stat-netto" class="text-3xl font-bold text-gray-100">0</span>
+                    <span id="stat-netto-euro" class="font-semibold text-gray-100">€</span>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">Vinto meno speso</p>
+            </div>
+        </div>
+
+        <!-- I TUOI NUMERI -->
+        <h2 class="su-sfondo text-lg font-semibold mb-4 text-gray-300 border-b border-gray-700 pb-2">I Tuoi Numeri</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+
+            <!-- Numeri fortunati (salvati) -->
+            <div class="aspect-square bg-gray-800 rounded-2xl border border-gray-700 shadow-lg p-4 sm:p-5 flex flex-col">
+                <div class="flex justify-between items-center h-9 mb-3">
+                    <h3 class="font-bold flex items-center space-x-2">
+                        <i class="fa-solid fa-clover text-amber-400"></i>
+                        <span>Numeri Fortunati</span>
+                    </h3>
+                    <button id="btn-scegli-fortunati" onclick="iniziaSceltaFortunati()" class="bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded-lg w-9 h-9 flex items-center justify-center text-gray-300 hover:text-amber-400 transition-colors" title="Scegli i tuoi numeri">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                </div>
+                <div id="griglia-fortunati" class="griglia-numeri grid grid-cols-10 gap-1 flex-1 min-h-0"></div>
+                <div class="mt-3 h-9 flex items-center">
+                    <div id="fortunati-vista" class="flex items-center space-x-2 w-full"></div>
+                    <div id="fortunati-modifica" class="hidden flex items-center justify-between w-full">
+                        <span id="fortunati-contatore" class="text-sm text-gray-400">0/3 scelti</span>
+                        <div class="flex space-x-2">
+                            <button onclick="annullaSceltaFortunati()" class="bg-gray-700 hover:bg-gray-600 text-gray-200 text-sm font-semibold py-1.5 px-3 rounded-lg transition-colors">
+                                Annulla
+                            </button>
+                            <button id="btn-salva-fortunati" onclick="salvaFortunati()" class="bg-amber-500 hover:bg-amber-400 text-gray-900 text-sm font-semibold py-1.5 px-4 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                                <i class="fa-solid fa-floppy-disk mr-1"></i>Salva
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Numeri casuali -->
+            <div class="aspect-square bg-gray-800 rounded-2xl border border-gray-700 shadow-lg p-4 sm:p-5 flex flex-col">
+                <div class="flex justify-between items-center h-9 mb-3">
+                    <h3 class="font-bold flex items-center space-x-2">
+                        <i class="fa-solid fa-dice text-blue-400"></i>
+                        <span>Numeri Casuali</span>
+                    </h3>
+                    <button onclick="generaCasuali()" class="bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded-lg w-9 h-9 flex items-center justify-center text-gray-300 hover:text-blue-400 transition-colors" title="Genera 3 numeri casuali">
+                        <i id="icona-aggiorna" class="fa-solid fa-rotate-right"></i>
+                    </button>
+                </div>
+                <div id="griglia-casuali" class="griglia-numeri grid grid-cols-10 gap-1 flex-1 min-h-0"></div>
+                <div id="casuali-vista" class="mt-3 h-9 flex items-center space-x-2"></div>
+            </div>
+
+        </div>
+
+        <!-- AZIONI -->
+        <h2 class="su-sfondo text-lg font-semibold mb-4 text-gray-300 border-b border-gray-700 pb-2 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+            <span>Registra Esito Giornaliero (Costo: 1€)</span>
+            <span class="flex items-center space-x-2">
+                <span id="badge-mese" class="whitespace-nowrap text-xs font-bold px-3 py-1 rounded-full bg-gray-800 text-gray-300 border border-gray-700">Mese: 0/30</span>
+                <span id="badge-oggi" class="hidden whitespace-nowrap text-xs font-bold px-3 py-1 rounded-full bg-green-900 text-white">
+                    <i class="fa-solid fa-check mr-1"></i>Oggi registrato
+                </span>
+            </span>
+        </h2>
+
+        <!-- Mese completato: sostituisce i bottoni quando si arriva a 30 giornate -->
+        <div id="mese-completato" class="hidden bg-gray-800 border border-emerald-700/60 rounded-2xl p-6 mb-12 shadow-lg">
+            <div class="flex items-center space-x-3 mb-3">
+                <div class="bg-emerald-600 text-white rounded-full w-10 h-10 flex items-center justify-center"><i class="fa-solid fa-flag-checkered"></i></div>
+                <div>
+                    <h3 class="text-lg font-bold text-white">Mese completato: 30 giornate su 30</h3>
+                    <p id="mese-completato-ripartenza" class="text-sm text-gray-400"></p>
+                </div>
+            </div>
+            <div id="mese-completato-riepilogo" class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm"></div>
+        </div>
+
+        <div id="zona-registrazione">
+            <!-- Quale serie hai giocato -->
+            <div class="bg-gray-800 border border-gray-700 rounded-2xl p-4 mb-4 shadow-lg">
+                <p class="text-sm text-gray-400 mb-3">Oggi ho giocato:</p>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <button id="serie-fortunati" onclick="scegliSerie('fortunati')" class="serie-btn text-left rounded-xl border px-4 py-3 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                        <span class="block font-semibold"><i class="fa-solid fa-clover text-amber-400 mr-1"></i>Fortunati</span>
+                        <span id="serie-fortunati-numeri" class="block text-xs text-gray-400 mt-0.5"></span>
+                    </button>
+                    <button id="serie-casuali" onclick="scegliSerie('casuali')" class="serie-btn text-left rounded-xl border px-4 py-3 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                        <span class="block font-semibold"><i class="fa-solid fa-dice text-blue-400 mr-1"></i>Casuali</span>
+                        <span id="serie-casuali-numeri" class="block text-xs text-gray-400 mt-0.5"></span>
+                    </button>
+                    <button id="serie-altri" onclick="scegliSerie('altri')" class="serie-btn text-left rounded-xl border px-4 py-3 transition-colors">
+                        <span class="block font-semibold"><i class="fa-solid fa-hashtag text-gray-400 mr-1"></i>Altri numeri</span>
+                        <span class="block text-xs text-gray-400 mt-0.5">Una serie diversa dalle due</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+
+                <!-- 0 o 1 Numero -->
+                <button onclick="logPlay(0)" class="group relative bg-gray-800 hover:bg-gray-700 border border-gray-600 rounded-2xl p-6 text-left transition-all hover:shadow-[0_0_15px_rgba(239,68,68,0.3)] hover:-translate-y-1">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="bg-gray-700 text-gray-300 p-3 rounded-full w-12 h-12 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-xmark"></i>
+                        </div>
+                        <span class="text-xs font-bold px-2 py-1 rounded bg-gray-900 text-gray-400">Incasso: 0€</span>
+                    </div>
+                    <h3 class="text-xl font-bold mb-1">0 o 1 Numero</h3>
+                    <p class="text-sm text-gray-400">Giornata in perdita. Cassa -1€.</p>
+                </button>
+
+                <!-- 2 Numeri -->
+                <button onclick="logPlay(2)" class="group relative bg-gray-800 hover:bg-blue-900/40 border border-blue-800/50 rounded-2xl p-6 text-left transition-all hover:shadow-[0_0_15px_rgba(59,130,246,0.4)] hover:-translate-y-1">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="bg-blue-600 text-white p-3 rounded-full w-12 h-12 flex items-center justify-center text-xl shadow-lg">
+                            <i class="fa-solid fa-check-double"></i>
+                        </div>
+                        <span class="text-xs font-bold px-2 py-1 rounded bg-blue-900 text-blue-200 border border-blue-700">Incasso: +2€</span>
+                    </div>
+                    <h3 class="text-xl font-bold mb-1 text-blue-300">2 Numeri</h3>
+                    <p class="text-sm text-blue-200/70">Il Cuscinetto. Recuperi la giocata e vinci 1€ netto.</p>
+                </button>
+
+                <!-- 3 Numeri -->
+                <button onclick="logPlay(3)" class="group relative bg-gradient-to-br from-amber-600 to-yellow-500 hover:from-amber-500 hover:to-yellow-400 border border-yellow-300 rounded-2xl p-6 text-left transition-all hover:shadow-[0_0_25px_rgba(252,211,77,0.6)] hover:-translate-y-1 transform">
+                    <div class="absolute -top-3 -right-3 text-3xl animate-bounce">🎯</div>
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="bg-white/20 text-white p-3 rounded-full w-12 h-12 flex items-center justify-center text-xl backdrop-blur-sm border border-white/30 shadow-lg">
+                            <i class="fa-solid fa-trophy"></i>
+                        </div>
+                        <span class="text-xs font-bold px-2 py-1 rounded bg-black/30 text-yellow-100 border border-yellow-200/30 backdrop-blur-sm">Incasso: +50€</span>
+                    </div>
+                    <h3 class="text-xl font-bold mb-1 text-white">3 Numeri (Jackpot!)</h3>
+                    <p class="text-sm text-yellow-100 font-medium">Obiettivo raggiunto! Genera il profitto.</p>
+                </button>
+
+            </div>
+        </div>
+
+        <!-- CALENDARIO E STATISTICHE -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
+
+            <!-- Calendario del mese -->
+            <div class="bg-gray-800 border border-gray-700 rounded-2xl p-5 shadow-lg">
+                <div class="flex justify-between items-center mb-4">
+                    <button onclick="cambiaMese(-1)" class="w-9 h-9 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 flex items-center justify-center transition-colors" title="Mese precedente">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    <h3 id="calendario-titolo" class="font-bold text-white flex items-center space-x-2"></h3>
+                    <button id="btn-mese-successivo" onclick="cambiaMese(1)" class="w-9 h-9 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title="Mese successivo">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+                <div class="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-gray-500 mb-1">
+                    <span>L</span><span>M</span><span>M</span><span>G</span><span>V</span><span>S</span><span>D</span>
+                </div>
+                <div id="calendario-giorni" class="grid grid-cols-7 gap-1"></div>
+                <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400 mt-3">
+                    <span><span class="inline-block w-3 h-3 rounded-sm bg-gray-600 align-middle mr-1"></span>0 o 1</span>
+                    <span><span class="inline-block w-3 h-3 rounded-sm bg-blue-600 align-middle mr-1"></span>2 numeri</span>
+                    <span><span class="inline-block w-3 h-3 rounded-sm bg-amber-500 align-middle mr-1"></span>3 numeri</span>
+                </div>
+                <div id="calendario-riepilogo" class="grid grid-cols-3 gap-2 text-sm mt-4 pt-4 border-t border-gray-700"></div>
+            </div>
+
+            <!-- Realtà e probabilità -->
+            <div class="bg-gray-800 border border-gray-700 rounded-2xl p-5 shadow-lg">
+                <h3 class="font-bold text-white mb-1 flex items-center space-x-2">
+                    <i class="fa-solid fa-chart-simple text-purple-400"></i>
+                    <span>Realtà e Probabilità</span>
+                </h3>
+                <p class="text-xs text-gray-500 mb-4">Confronto tra quello che ti è successo e quello che dice la matematica, su <span id="prob-giocate">0</span> giocate registrate.</p>
+                <div id="prob-righe" class="space-y-4"></div>
+
+                <h4 class="text-sm font-semibold text-gray-300 mt-6 mb-2">Per serie giocata</h4>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="text-gray-500 text-xs text-left">
+                                <th class="font-semibold py-1">Serie</th>
+                                <th class="font-semibold py-1 text-right">Giocate</th>
+                                <th class="font-semibold py-1 text-right">2 num.</th>
+                                <th class="font-semibold py-1 text-right">3 num.</th>
+                                <th class="font-semibold py-1 text-right">Netto</th>
+                            </tr>
+                        </thead>
+                        <tbody id="prob-serie"></tbody>
+                    </table>
+                </div>
+                <p class="text-xs text-gray-500 mt-4">Probabilità per 3 numeri giocati con 20 estratti su 90. Con poche giocate è normale che la realtà si allontani dal valore atteso: il confronto diventa significativo dopo qualche centinaio di giocate.</p>
+            </div>
+        </div>
+
+        <!-- BACKUP -->
+        <div class="bg-gray-800 border border-gray-700 rounded-2xl p-5 shadow-lg mb-8">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h3 class="font-bold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-cloud-arrow-up text-sky-400"></i>
+                        <span>Backup</span>
+                    </h3>
+                    <p class="text-xs text-gray-500 mt-1">I dati sono salvati solo su questo dispositivo. Il backup su Google Drive sovrascrive sempre lo stesso file.</p>
+                </div>
+            </div>
+            <p id="backup-stato" class="text-sm text-gray-300 mb-4"></p>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <button id="btn-drive-salva" onclick="salvaSuDrive()" class="bg-sky-600 hover:bg-sky-500 text-white text-sm font-semibold py-2.5 px-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fa-solid fa-cloud-arrow-up mr-1"></i>Salva su Drive
+                </button>
+                <button id="btn-drive-ripristina" onclick="ripristinaDaDrive()" class="bg-gray-700 hover:bg-gray-600 text-gray-200 text-sm font-semibold py-2.5 px-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fa-solid fa-cloud-arrow-down mr-1"></i>Ripristina da Drive
+                </button>
+                <button onclick="scaricaBackup()" class="bg-gray-700 hover:bg-gray-600 text-gray-200 text-sm font-semibold py-2.5 px-3 rounded-lg transition-colors">
+                    <i class="fa-solid fa-file-arrow-down mr-1"></i>Scarica file
+                </button>
+                <button onclick="document.getElementById('input-backup').click()" class="bg-gray-700 hover:bg-gray-600 text-gray-200 text-sm font-semibold py-2.5 px-3 rounded-lg transition-colors">
+                    <i class="fa-solid fa-file-arrow-up mr-1"></i>Carica file
+                </button>
+            </div>
+            <input type="file" id="input-backup" accept="application/json,.json" class="hidden">
+            <p id="backup-drive-nota" class="hidden text-xs text-amber-400 mt-3"><i class="fa-solid fa-circle-info mr-1"></i>Google Drive non è ancora configurato: manca l'ID client in config.js (vedi README). Intanto puoi usare "Scarica file".</p>
+        </div>
+
+        <!-- RESET & UNDO ZONE -->
+        <div class="su-sfondo flex justify-between items-center mt-8 border-t border-gray-800 pt-6">
+            <button onclick="undoAction()" id="btn-undo" class="text-gray-500 hover:text-blue-400 text-sm flex items-center space-x-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="fa-solid fa-rotate-left"></i>
+                <span>Annulla ultima azione</span>
+            </button>
+            <button onclick="openModal('reset-modal')" class="text-gray-500 hover:text-red-400 text-sm flex items-center space-x-2 transition-colors">
+                <i class="fa-solid fa-trash-can"></i>
+                <span>Azzera tutti i dati</span>
+            </button>
+        </div>
+
+    </main>
+
+    <!-- MODAL: GUIDA OPERATIVA -->
+    <div id="guide-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm fade-in" onclick="closeModal('guide-modal')"></div>
+        <!-- Modal Content -->
+        <div class="relative bg-gray-800 border border-gray-700 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto slide-up">
+            <div class="flex justify-between items-center p-5 border-b border-gray-700 sticky top-0 bg-gray-800/95 backdrop-blur z-10">
+                <h3 class="text-xl font-bold flex items-center space-x-2"><i class="fa-solid fa-book-open text-blue-500"></i> <span>Guida al Piano Operativo</span></h3>
+                <button onclick="closeModal('guide-modal')" class="text-gray-400 hover:text-white transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-700">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-6 text-gray-300 text-sm sm:text-base leading-relaxed">
+
+                <section>
+                    <h4 class="text-lg font-semibold text-white mb-2 border-l-4 border-blue-500 pl-3">1. Il Setup Mensile</h4>
+                    <ul class="list-disc list-inside space-y-2 ml-2">
+                        <li><strong class="text-white">Budget:</strong> 30€ (esattamente 1€ al giorno).</li>
+                        <li><strong class="text-white">Numeri da giocare:</strong> Scegli rigorosamente <span class="text-amber-400 font-bold">3 numeri</span>. Non 4, non 2.</li>
+                        <li><strong class="text-white">Divieti:</strong> Le opzioni "Numero Oro", "Doppio Oro" o "Extra" devono essere <span class="text-red-400 font-bold">DISATTIVATE</span>. Costano di più e rompono la matematica del sistema.</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h4 class="text-lg font-semibold text-white mb-2 border-l-4 border-emerald-500 pl-3">2. Gestione della Cassa</h4>
+                    <ul class="list-none space-y-3">
+                        <li class="bg-gray-900/50 p-3 rounded-lg border border-gray-700">
+                            <i class="fa-solid fa-xmark text-gray-500 w-5"></i> <strong>0/1 Numero:</strong> Giorno perso. Si scala 1€ e si va al giorno dopo senza cambiare strategia.
+                        </li>
+                        <li class="bg-blue-900/20 p-3 rounded-lg border border-blue-800/30">
+                            <i class="fa-solid fa-check-double text-blue-400 w-5"></i> <strong>2 Numeri:</strong> Vinci 2€. Non reinvestirli! Lasciali in cassa: servono ad ammortizzare i giorni persi.
+                        </li>
+                        <li class="bg-amber-900/20 p-3 rounded-lg border border-amber-700/30">
+                            <i class="fa-solid fa-trophy text-amber-400 w-5"></i> <strong>3 Numeri:</strong> Vinci 50€. Scatta il Take Profit immediato (vedi punto 3).
+                        </li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h4 class="text-lg font-semibold text-white mb-2 border-l-4 border-purple-500 pl-3">3. La Regola d'Oro (Take Profit)</h4>
+                    <p class="mb-2">Quando centri i 3 numeri e vinci i 50€, <strong class="text-white">NON continuare a giocare tutto</strong>.</p>
+                    <p>Devi ritirare (o mettere da parte) <strong class="text-emerald-400">30€</strong>. Questo copre interamente il tuo rischio mensile. I restanti 20€ rimangono in cassa per finanziare i successivi 20 giorni: da quel momento operi a <strong class="text-white">Rischio Zero</strong> con i soldi del banco.</p>
+                </section>
+
+                <section>
+                    <h4 class="text-lg font-semibold text-white mb-2 border-l-4 border-sky-500 pl-3">4. Il Limite del Mese</h4>
+                    <p>Ogni mese di calendario si registrano al massimo <strong class="text-white">30 giornate</strong>. Arrivato a 30, l'app mostra il riepilogo e si riparte il 1° del mese successivo.</p>
+                </section>
+
+            </div>
+            <div class="p-5 border-t border-gray-700 bg-gray-800/95 sticky bottom-0 text-right">
+                <button onclick="closeModal('guide-modal')" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors">
+                    Ho Capito
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: TAKE PROFIT (JACKPOT) -->
+    <div id="jackpot-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-md fade-in"></div>
+        <div class="relative bg-gradient-to-b from-gray-800 to-gray-900 border border-yellow-500/50 rounded-2xl shadow-[0_0_40px_rgba(252,211,77,0.2)] w-full max-w-md text-center slide-up overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-400"></div>
+            <div class="p-8">
+                <div class="w-20 h-20 bg-yellow-500/20 rounded-full mx-auto flex items-center justify-center mb-6">
+                    <i class="fa-solid fa-crown text-4xl text-yellow-400"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-white mb-2">🎯 Obiettivo Raggiunto!</h2>
+                <h3 class="text-xl text-yellow-400 font-semibold mb-4">Hai vinto 50€</h3>
+
+                <div class="bg-gray-800/50 rounded-lg p-4 mb-6 border border-gray-700 text-sm text-gray-300 text-left">
+                    <p class="mb-2"><i class="fa-solid fa-circle-exclamation text-blue-400 mr-2"></i><strong>Azione richiesta:</strong></p>
+                    <p>Come da piano operativo, preleva <strong>30€</strong> per coprire integralmente il rischio mensile. Lascerai 20€ in cassa per continuare a giocare senza rischiare più i tuoi soldi.</p>
+                </div>
+
+                <div class="space-y-3">
+                    <button onclick="executeTakeProfit()" class="w-full bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all hover:shadow-emerald-500/30 flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-money-bill-wave"></i>
+                        <span>Esegui Prelievo di 30€</span>
+                    </button>
+                    <button onclick="closeModal('jackpot-modal')" class="w-full bg-gray-700 hover:bg-gray-600 text-gray-300 font-semibold py-3 px-4 rounded-xl transition-colors">
+                        Ignora (Lascia tutto in cassa)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: MESSAGGIO GENERICO -->
+    <div id="msg-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm fade-in" onclick="closeModal('msg-modal')"></div>
+        <div class="relative bg-gray-800 border border-gray-700 rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center slide-up">
+            <div id="msg-icon" class="text-red-500 text-4xl mb-4"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <h3 class="text-xl font-bold text-white mb-2" id="msg-title">Attenzione</h3>
+            <p class="text-gray-300 mb-6" id="msg-body">La tua cassa è esaurita. Ricarica per continuare il piano.</p>
+            <button onclick="closeModal('msg-modal')" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                Chiudi
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL: CONFERMA RIPRISTINO BACKUP -->
+    <div id="ripristino-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm fade-in" onclick="closeModal('ripristino-modal')"></div>
+        <div class="relative bg-gray-800 border border-sky-900/60 rounded-2xl shadow-2xl w-full max-w-sm p-6 slide-up">
+            <h3 class="text-xl font-bold text-white mb-2 flex items-center space-x-2"><i class="fa-solid fa-clock-rotate-left text-sky-400"></i> <span>Ripristinare il backup?</span></h3>
+            <p id="ripristino-testo" class="text-gray-300 text-sm mb-6"></p>
+            <div class="flex space-x-3">
+                <button onclick="closeModal('ripristino-modal')" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                    Annulla
+                </button>
+                <button onclick="confermaRipristino()" class="flex-1 bg-sky-600 hover:bg-sky-500 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                    Sì, Ripristina
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: CONFERMA RESET -->
+    <div id="reset-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm fade-in" onclick="closeModal('reset-modal')"></div>
+        <div class="relative bg-gray-800 border border-red-900/50 rounded-2xl shadow-2xl w-full max-w-sm p-6 slide-up">
+            <h3 class="text-xl font-bold text-white mb-2 flex items-center space-x-2"><i class="fa-solid fa-rotate-left text-red-500"></i> <span>Conferma Azzeramento</span></h3>
+            <p class="text-gray-300 text-sm mb-6">Vuoi davvero cancellare tutte le statistiche e il calendario? La cassa tornerà a 30€ e i giorni verranno azzerati. I numeri fortunati restano salvati. Se ti sei sbagliato, subito dopo puoi recuperare tutto con «Annulla ultima azione».</p>
+            <div class="flex space-x-3">
+                <button onclick="closeModal('reset-modal')" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                    Annulla
+                </button>
+                <button onclick="resetData()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                    Sì, Azzera
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: MODIFICA CASSA -->
+    <div id="edit-balance-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm fade-in" onclick="closeModal('edit-balance-modal')"></div>
+        <div class="relative bg-gray-800 border border-gray-700 rounded-2xl shadow-2xl w-full max-w-sm p-6 slide-up">
+            <h3 class="text-xl font-bold text-white mb-2 flex items-center space-x-2"><i class="fa-solid fa-wallet text-blue-500"></i> <span>Imposta Saldo Cassa</span></h3>
+            <p class="text-gray-400 text-sm mb-4">Inserisci il valore esatto da cui vuoi far partire (o correggere) la tua cassa. La differenza viene segnata come rettifica sotto la cassa.</p>
+
+            <div class="mb-6 relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span class="text-gray-400 font-semibold">€</span>
+                </div>
+                <input type="number" id="input-balance" min="0" step="0.01" inputmode="decimal" class="bg-gray-900 border border-gray-600 text-white text-lg rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2.5" placeholder="Es: 50" required>
+            </div>
+
+            <div class="flex space-x-3">
+                <button onclick="closeModal('edit-balance-modal')" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                    Annulla
+                </button>
+                <button onclick="saveNewBalance()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                    Salva
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- COSTANTI ---
+        const CHIAVE_STATO = '10elotto_tracker_state';
+        const CHIAVE_STORICO = '10elotto_tracker_history';
+        const CHIAVE_FORTUNATI = '10elotto_numeri_fortunati';
+        const CHIAVE_IMPOSTAZIONI = '10elotto_impostazioni';
+        const MAX_NUMERI = 3;
+        const GIORNATE_MESE = 30;
+        const SERIE = ['fortunati', 'casuali', 'altri'];
+        const NOMI_SERIE = { fortunati: 'Fortunati', casuali: 'Casuali', altri: 'Altri numeri' };
+        const VINCITA = { 0: 0, 2: 2, 3: 50 };
+        const STATO_INIZIALE = {
+            cassa: 30,
+            speso: 0,
+            vinto: 0,
+            giorni: 0,
+            prelevato: 0,
+            rettifiche: 0,
+            ultimaGiocata: null, // data "AAAA-MM-GG" dell'ultima giornata registrata
+            registro: []         // una voce per giornata: { data, esito, serie, numeri }
+        };
+        const IMPOSTAZIONI_INIZIALI = {
+            serieScelta: 'fortunati',
+            numeriCasuali: [],
+            ultimoBackupDrive: null
+        };
+
+        // Probabilità con 3 numeri giocati e 20 numeri estratti su 90
+        function combinazioni(n, k) {
+            let risultato = 1;
+            for (let i = 1; i <= k; i++) risultato = risultato * (n - k + i) / i;
+            return risultato;
+        }
+        const PROB_2 = combinazioni(20, 2) * combinazioni(70, 1) / combinazioni(90, 3); // circa 11,3%
+        const PROB_3 = combinazioni(20, 3) / combinazioni(90, 3);                        // circa 0,97%
+        const NETTO_ATTESO_GIOCATA = PROB_2 * VINCITA[2] + PROB_3 * VINCITA[3] - 1;      // circa -0,29€
+
+        const DRIVE_NOME_FILE = 'tracker-10elotto-backup.json';
+        const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+
+        const CLASSE_CELLA = 'flex items-center justify-center rounded-md border text-xs sm:text-sm font-semibold transition-colors select-none';
+        const CLASSE_SPENTA = 'bg-gray-900 border-gray-700 text-gray-500';
+        const CLASSE_FORTUNATO = 'bg-amber-500 border-amber-300 text-gray-900 shadow';
+        const CLASSE_CASUALE = 'bg-blue-500 border-blue-300 text-white shadow';
+        const CLASSE_ESITO = {
+            0: 'bg-gray-600 border-gray-500 text-white',
+            2: 'bg-blue-600 border-blue-400 text-white',
+            3: 'bg-amber-500 border-amber-300 text-gray-900'
+        };
+
+        // --- STATO DELL'APP ---
+        let state = { ...STATO_INIZIALE, registro: [] };
+        let stateHistory = [];
+        let numeriFortunati = [];
+        let impostazioni = { ...IMPOSTAZIONI_INIZIALI };
+        let bozzaFortunati = null; // array durante la scelta, null quando non si sta modificando
+        let meseVisualizzato = oggi().slice(0, 7);
+        let backupDaRipristinare = null;
+        let eventoInstallazione = null;
+
+        // --- INIZIALIZZAZIONE ---
+        document.addEventListener('DOMContentLoaded', () => {
+            creaGriglia('griglia-fortunati', toggleFortunato);
+            creaGriglia('griglia-casuali', null);
+            document.getElementById('input-balance').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') saveNewBalance();
+            });
+            document.getElementById('input-backup').addEventListener('change', caricaBackup);
+            loadState();
+            aggiornaFortunati();
+            aggiornaCasuali();
+            preparaDrive();
+            // Ricontrolla ogni minuto: a mezzanotte lo sfondo torna standard anche a pagina aperta
+            setInterval(updateUI, 60000);
+        });
+
+        // --- APP INSTALLABILE (PWA) ---
+        if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch(e => console.error("Service worker non registrato", e));
+            });
+        }
+        // Chiede al browser di non cancellare i dati locali quando manca spazio
+        if (navigator.storage && navigator.storage.persist) {
+            navigator.storage.persist().catch(() => {});
+        }
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            eventoInstallazione = e;
+            document.getElementById('btn-installa').classList.remove('hidden');
+        });
+        window.addEventListener('appinstalled', () => {
+            document.getElementById('btn-installa').classList.add('hidden');
+        });
+
+        function installaApp() {
+            if (!eventoInstallazione) return;
+            eventoInstallazione.prompt();
+            eventoInstallazione = null;
+            document.getElementById('btn-installa').classList.add('hidden');
+        }
+
+        // --- UTILITÀ ---
+        function dataLocale(d) {
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+
+        function oggi() {
+            return dataLocale(new Date());
+        }
+
+        function euro(valore) {
+            return Number(valore).toLocaleString('it-IT', { maximumFractionDigits: 2 });
+        }
+
+        function euroConSegno(valore) {
+            return `${valore > 0 ? '+' : ''}${euro(valore)} €`;
+        }
+
+        function arrotonda(valore) {
+            return Math.round(valore * 100) / 100;
+        }
+
+        function percentuale(valore) {
+            return `${(valore * 100).toLocaleString('it-IT', { maximumFractionDigits: valore < 0.01 ? 2 : 1 })}%`;
+        }
+
+        function nomeMese(mese) {
+            const [anno, numero] = mese.split('-').map(Number);
+            const testo = new Date(anno, numero - 1, 1).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
+            return testo.charAt(0).toUpperCase() + testo.slice(1);
+        }
+
+        function meseSuccessivo(mese) {
+            const [anno, numero] = mese.split('-').map(Number);
+            return dataLocale(new Date(anno, numero, 1)).slice(0, 7);
+        }
+
+        function classeNetto(valore) {
+            if (valore > 0) return 'text-emerald-400';
+            if (valore < 0) return 'text-red-400';
+            return 'text-gray-100';
+        }
+
+        // --- VALIDAZIONE (dati salvati e backup importati) ---
+        function numeriValidi(lista) {
+            if (!Array.isArray(lista)) return [];
+            return [...new Set(lista)]
+                .filter(n => Number.isInteger(n) && n >= 1 && n <= 90)
+                .slice(0, MAX_NUMERI);
+        }
+
+        function registroValido(lista) {
+            if (!Array.isArray(lista)) return [];
+            return lista
+                .filter(r => r && /^\d{4}-\d{2}-\d{2}$/.test(r.data) && [0, 2, 3].includes(r.esito))
+                .map(r => ({
+                    data: r.data,
+                    esito: r.esito,
+                    serie: SERIE.includes(r.serie) ? r.serie : 'altri',
+                    numeri: numeriValidi(r.numeri)
+                }));
+        }
+
+        function statoValido(dati) {
+            const pulito = { ...STATO_INIZIALE };
+            for (const chiave of ['cassa', 'speso', 'vinto', 'giorni', 'prelevato', 'rettifiche']) {
+                const valore = Number(dati[chiave]);
+                if (Number.isFinite(valore)) pulito[chiave] = valore;
+            }
+            pulito.ultimaGiocata = /^\d{4}-\d{2}-\d{2}$/.test(dati.ultimaGiocata) ? dati.ultimaGiocata : null;
+            pulito.registro = registroValido(dati.registro);
+            return pulito;
+        }
+
+        // --- GESTIONE LOCALSTORAGE ---
+        function leggi(chiave) {
+            try {
+                const valore = localStorage.getItem(chiave);
+                return valore ? JSON.parse(valore) : null;
+            } catch (e) {
+                console.error("Errore nella lettura dei dati salvati", e);
+                return null;
+            }
+        }
+
+        function scrivi(chiave, valore) {
+            try {
+                localStorage.setItem(chiave, JSON.stringify(valore));
+            } catch (e) {
+                console.error("Errore nel salvataggio dei dati", e);
+            }
+        }
+
+        function loadState() {
+            const savedData = leggi(CHIAVE_STATO);
+            if (savedData && typeof savedData === 'object') {
+                // I dati della versione precedente non hanno i campi nuovi: statoValido li completa
+                state = statoValido(savedData);
+            }
+
+            const savedHistory = leggi(CHIAVE_STORICO);
+            if (Array.isArray(savedHistory)) {
+                stateHistory = savedHistory;
+            }
+
+            numeriFortunati = numeriValidi(leggi(CHIAVE_FORTUNATI));
+
+            const savedImpostazioni = leggi(CHIAVE_IMPOSTAZIONI);
+            if (savedImpostazioni && typeof savedImpostazioni === 'object') {
+                impostazioni = {
+                    serieScelta: SERIE.includes(savedImpostazioni.serieScelta) ? savedImpostazioni.serieScelta : 'fortunati',
+                    numeriCasuali: numeriValidi(savedImpostazioni.numeriCasuali),
+                    ultimoBackupDrive: savedImpostazioni.ultimoBackupDrive || null
+                };
+            }
+            updateUI();
+        }
+
+        function saveState() {
+            scrivi(CHIAVE_STATO, state);
+            scrivi(CHIAVE_STORICO, stateHistory);
+        }
+
+        function salvaImpostazioni() {
+            scrivi(CHIAVE_IMPOSTAZIONI, impostazioni);
+        }
+
+        function pushHistory() {
+            // Salva una copia profonda dello stato attuale nello storico
+            stateHistory.push(JSON.parse(JSON.stringify(state)));
+            // Mantiene al massimo le ultime 50 azioni per non appesantire la memoria
+            if(stateHistory.length > 50) {
+                stateHistory.shift();
+            }
+        }
+
+        // --- AGGIORNAMENTO UI ---
+        function updateUI() {
+            const elCassa = document.getElementById('stat-cassa');
+            const elDettaglio = document.getElementById('stat-cassa-dettaglio');
+            const elSpeso = document.getElementById('stat-speso');
+            const elVinto = document.getElementById('stat-vinto');
+            const elGiorni = document.getElementById('stat-giorni');
+            const elNetto = document.getElementById('stat-netto');
+            const btnUndo = document.getElementById('btn-undo');
+
+            // Aggiorna valori testo
+            elCassa.innerText = euro(state.cassa);
+            elSpeso.innerText = euro(state.speso);
+            elVinto.innerText = euro(state.vinto);
+            elGiorni.innerText = state.giorni;
+
+            // Netto reale: quanto hai davvero guadagnato o perso con le giocate
+            const netto = arrotonda(state.vinto - state.speso);
+            elNetto.innerText = `${netto > 0 ? '+' : ''}${euro(netto)}`;
+            elNetto.className = `text-3xl font-bold ${classeNetto(netto)}`;
+            document.getElementById('stat-netto-euro').className = `font-semibold ${classeNetto(netto)}`;
+
+            // Prelievi e correzioni manuali, così la cassa resta spiegabile
+            const dettagli = [];
+            if (state.prelevato) dettagli.push(`Prelevato: ${euro(state.prelevato)} €`);
+            if (state.rettifiche) dettagli.push(`Rettifiche: ${euroConSegno(state.rettifiche)}`);
+            elDettaglio.innerText = dettagli.join(' · ');
+
+            // Stato bottone Annulla (l'aspetto disattivato lo gestiscono le classi disabled:)
+            btnUndo.disabled = stateHistory.length === 0;
+
+            // Sfondo verde se la giornata di oggi è già registrata
+            const giocatoOggi = state.ultimaGiocata === oggi();
+            document.body.classList.toggle('giocato-oggi', giocatoOggi);
+            document.getElementById('badge-oggi').classList.toggle('hidden', !giocatoOggi);
+
+            // Logica colori per la Cassa
+            if (state.cassa > 30) {
+                elCassa.className = "text-3xl font-bold text-emerald-400";
+            } else if (state.cassa > 10) {
+                elCassa.className = "text-3xl font-bold text-gray-100";
+            } else if (state.cassa > 0) {
+                elCassa.className = "text-3xl font-bold text-amber-400";
+            } else {
+                elCassa.className = "text-3xl font-bold text-red-500";
+            }
+
+            aggiornaMese();
+            aggiornaSerie();
+            aggiornaCalendario();
+            aggiornaStatistiche();
+            aggiornaBackup();
+        }
+
+        // --- LIMITE DEL MESE ---
+        function giocateDelMese(mese) {
+            return state.registro.filter(r => r.data.startsWith(mese));
+        }
+
+        function riepilogoMese(giocate) {
+            const due = giocate.filter(r => r.esito === 2).length;
+            const tre = giocate.filter(r => r.esito === 3).length;
+            const vinto = giocate.reduce((somma, r) => somma + VINCITA[r.esito], 0);
+            const netto = vinto - giocate.length;
+            const voci = [
+                ['Giornate', `${giocate.length}/${GIORNATE_MESE}`, 'text-gray-100'],
+                ['Speso', `${euro(giocate.length)} €`, 'text-red-400'],
+                ['Vinto', `${euro(vinto)} €`, 'text-blue-400'],
+                ['Netto', euroConSegno(netto), classeNetto(netto)],
+                ['2 numeri', due, 'text-blue-300'],
+                ['3 numeri', tre, 'text-amber-400']
+            ];
+            return voci.map(([etichetta, valore, colore]) => `
+                <div class="bg-gray-900/60 rounded-lg px-3 py-2">
+                    <p class="text-xs text-gray-500">${etichetta}</p>
+                    <p class="font-bold ${colore}">${valore}</p>
+                </div>`).join('');
+        }
+
+        function aggiornaMese() {
+            const mese = oggi().slice(0, 7);
+            const giocate = giocateDelMese(mese);
+            document.getElementById('badge-mese').innerText = `Mese: ${giocate.length}/${GIORNATE_MESE}`;
+
+            const completato = giocate.length >= GIORNATE_MESE;
+            document.getElementById('mese-completato').classList.toggle('hidden', !completato);
+            document.getElementById('zona-registrazione').classList.toggle('hidden', completato);
+            if (completato) {
+                document.getElementById('mese-completato-ripartenza').innerText = `Si riparte il 1° ${nomeMese(meseSuccessivo(mese)).toLowerCase()}.`;
+                document.getElementById('mese-completato-riepilogo').innerHTML = riepilogoMese(giocate);
+            }
+        }
+
+        // --- QUALE SERIE HAI GIOCATO ---
+        function serieDisponibile(serie) {
+            if (serie === 'fortunati') return numeriFortunati.length === MAX_NUMERI;
+            if (serie === 'casuali') return impostazioni.numeriCasuali.length === MAX_NUMERI;
+            return true;
+        }
+
+        function serieAttiva() {
+            return serieDisponibile(impostazioni.serieScelta) ? impostazioni.serieScelta : 'altri';
+        }
+
+        function scegliSerie(serie) {
+            if (!serieDisponibile(serie)) return;
+            impostazioni.serieScelta = serie;
+            salvaImpostazioni();
+            aggiornaSerie();
+        }
+
+        function aggiornaSerie() {
+            const attiva = serieAttiva();
+            document.getElementById('serie-fortunati-numeri').innerText = numeriFortunati.length
+                ? numeriFortunati.join(' · ')
+                : 'Nessun numero salvato';
+            document.getElementById('serie-casuali-numeri').innerText = impostazioni.numeriCasuali.length
+                ? impostazioni.numeriCasuali.join(' · ')
+                : 'Genera prima i numeri';
+            SERIE.forEach(serie => {
+                const bottone = document.getElementById(`serie-${serie}`);
+                bottone.disabled = !serieDisponibile(serie);
+                bottone.classList.toggle('bg-gray-700', serie === attiva);
+                bottone.classList.toggle('border-blue-400', serie === attiva);
+                bottone.classList.toggle('bg-gray-900', serie !== attiva);
+                bottone.classList.toggle('border-gray-700', serie !== attiva);
+            });
+        }
+
+        // --- CALENDARIO ---
+        function cambiaMese(delta) {
+            const [anno, numero] = meseVisualizzato.split('-').map(Number);
+            const nuovo = dataLocale(new Date(anno, numero - 1 + delta, 1)).slice(0, 7);
+            if (nuovo > oggi().slice(0, 7)) return;
+            meseVisualizzato = nuovo;
+            aggiornaCalendario();
+        }
+
+        function aggiornaCalendario() {
+            const [anno, numero] = meseVisualizzato.split('-').map(Number);
+            const spostamento = (new Date(anno, numero - 1, 1).getDay() + 6) % 7; // lunedì = 0
+            const giorniNelMese = new Date(anno, numero, 0).getDate();
+            const perData = {};
+            giocateDelMese(meseVisualizzato).forEach(r => { perData[r.data] = r; });
+            const dataOggi = oggi();
+
+            let html = '<span></span>'.repeat(spostamento);
+            for (let giorno = 1; giorno <= giorniNelMese; giorno++) {
+                const data = `${meseVisualizzato}-${String(giorno).padStart(2, '0')}`;
+                const voce = perData[data];
+                let classi = voce ? CLASSE_ESITO[voce.esito] : 'bg-gray-900 border-gray-700 text-gray-500';
+                if (data === dataOggi) classi += ' ring-2 ring-white';
+                const titolo = voce
+                    ? `${voce.esito === 0 ? '0 o 1 numero' : voce.esito + ' numeri'} · ${NOMI_SERIE[voce.serie]}${voce.numeri.length ? ' (' + voce.numeri.join(' · ') + ')' : ''}`
+                    : 'Non giocato';
+                html += `<div class="aspect-square rounded-md border flex items-center justify-center text-xs font-semibold ${classi}" title="${titolo}">${giorno}</div>`;
+            }
+
+            document.getElementById('calendario-titolo').innerHTML = `<i class="fa-solid fa-calendar-days text-blue-400"></i><span>${nomeMese(meseVisualizzato)}</span>`;
+            document.getElementById('calendario-giorni').innerHTML = html;
+            document.getElementById('calendario-riepilogo').innerHTML = riepilogoMese(giocateDelMese(meseVisualizzato));
+            document.getElementById('btn-mese-successivo').disabled = meseVisualizzato >= dataOggi.slice(0, 7);
+        }
+
+        // --- REALTÀ E PROBABILITÀ ---
+        function rigaConfronto(etichetta, volte, totale, probabilita) {
+            const quotaReale = totale ? volte / totale : 0;
+            const attese = totale * probabilita;
+            // La barra usa come fondo scala il valore più alto tra reale e atteso
+            const fondoScala = Math.max(quotaReale, probabilita) || 1;
+            return `
+                <div>
+                    <div class="flex justify-between text-sm mb-1">
+                        <span class="font-semibold text-gray-200">${etichetta}</span>
+                        <span class="text-gray-400">${volte} ${volte === 1 ? 'volta' : 'volte'} (${percentuale(quotaReale)}) · attese ${attese.toLocaleString('it-IT', { maximumFractionDigits: 1 })} (${percentuale(probabilita)})</span>
+                    </div>
+                    <div class="space-y-1">
+                        <div class="h-2 rounded-full bg-gray-900 overflow-hidden"><div class="h-full bg-blue-500 rounded-full" style="width:${(quotaReale / fondoScala) * 100}%"></div></div>
+                        <div class="h-2 rounded-full bg-gray-900 overflow-hidden"><div class="h-full bg-gray-500 rounded-full" style="width:${(probabilita / fondoScala) * 100}%"></div></div>
+                    </div>
+                </div>`;
+        }
+
+        function aggiornaStatistiche() {
+            const registro = state.registro;
+            const totale = registro.length;
+            const due = registro.filter(r => r.esito === 2).length;
+            const tre = registro.filter(r => r.esito === 3).length;
+            const nettoReale = registro.reduce((somma, r) => somma + VINCITA[r.esito], 0) - totale;
+            const nettoAtteso = totale * NETTO_ATTESO_GIOCATA;
+
+            document.getElementById('prob-giocate').innerText = totale;
+            document.getElementById('prob-righe').innerHTML = `
+                ${rigaConfronto('2 numeri', due, totale, PROB_2)}
+                ${rigaConfronto('3 numeri', tre, totale, PROB_3)}
+                <div class="flex gap-x-4 gap-y-1 flex-wrap text-xs text-gray-500">
+                    <span><span class="inline-block w-3 h-2 rounded-full bg-blue-500 align-middle mr-1"></span>Realtà</span>
+                    <span><span class="inline-block w-3 h-2 rounded-full bg-gray-500 align-middle mr-1"></span>Probabilità</span>
+                </div>
+                <div class="grid grid-cols-2 gap-3 text-sm">
+                    <div class="bg-gray-900/60 rounded-lg px-3 py-2">
+                        <p class="text-xs text-gray-500">Netto reale</p>
+                        <p class="font-bold ${classeNetto(nettoReale)}">${euroConSegno(nettoReale)}</p>
+                    </div>
+                    <div class="bg-gray-900/60 rounded-lg px-3 py-2">
+                        <p class="text-xs text-gray-500">Netto atteso</p>
+                        <p class="font-bold ${classeNetto(nettoAtteso)}">${euroConSegno(arrotonda(nettoAtteso))}</p>
+                    </div>
+                </div>`;
+
+            document.getElementById('prob-serie').innerHTML = SERIE.map(serie => {
+                const giocate = registro.filter(r => r.serie === serie);
+                const netto = giocate.reduce((somma, r) => somma + VINCITA[r.esito], 0) - giocate.length;
+                return `
+                    <tr class="border-t border-gray-700/60">
+                        <td class="py-2 text-gray-200">${NOMI_SERIE[serie]}</td>
+                        <td class="py-2 text-right text-gray-300">${giocate.length}</td>
+                        <td class="py-2 text-right text-blue-300">${giocate.filter(r => r.esito === 2).length}</td>
+                        <td class="py-2 text-right text-amber-400">${giocate.filter(r => r.esito === 3).length}</td>
+                        <td class="py-2 text-right font-semibold ${classeNetto(netto)}">${euroConSegno(netto)}</td>
+                    </tr>`;
+            }).join('');
+        }
+
+        // --- GRIGLIE NUMERI ---
+        function creaGriglia(idGriglia, alClick) {
+            const griglia = document.getElementById(idGriglia);
+            for (let n = 1; n <= 90; n++) {
+                const cella = document.createElement('button');
+                cella.type = 'button';
+                cella.dataset.numero = n;
+                cella.textContent = n;
+                cella.className = `${CLASSE_CELLA} ${CLASSE_SPENTA}`;
+                if (alClick) cella.addEventListener('click', () => alClick(n));
+                griglia.appendChild(cella);
+            }
+        }
+
+        function coloraGriglia(idGriglia, selezionati, classeAttiva, cliccabile) {
+            document.querySelectorAll(`#${idGriglia} [data-numero]`).forEach(cella => {
+                const attivo = selezionati.includes(Number(cella.dataset.numero));
+                let classi = `${CLASSE_CELLA} ${attivo ? classeAttiva : CLASSE_SPENTA}`;
+                classi += cliccabile ? ' cursor-pointer' : ' cursor-default';
+                if (cliccabile && !attivo) classi += ' hover:border-amber-400 hover:text-amber-300';
+                cella.className = classi;
+                cella.disabled = !cliccabile;
+            });
+        }
+
+        function pallini(numeri, classe) {
+            return numeri
+                .map(n => `<span class="w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm border ${classe}">${Number(n)}</span>`)
+                .join('');
+        }
+
+        // --- NUMERI FORTUNATI ---
+        function iniziaSceltaFortunati() {
+            bozzaFortunati = [...numeriFortunati];
+            aggiornaFortunati();
+        }
+
+        function toggleFortunato(numero) {
+            if (bozzaFortunati === null) return;
+            if (bozzaFortunati.includes(numero)) {
+                bozzaFortunati = bozzaFortunati.filter(n => n !== numero);
+            } else if (bozzaFortunati.length < MAX_NUMERI) {
+                bozzaFortunati.push(numero);
+            }
+            aggiornaFortunati();
+        }
+
+        function salvaFortunati() {
+            if (bozzaFortunati === null || bozzaFortunati.length !== MAX_NUMERI) return;
+            numeriFortunati = [...bozzaFortunati].sort((a, b) => a - b);
+            bozzaFortunati = null;
+            scrivi(CHIAVE_FORTUNATI, numeriFortunati);
+            aggiornaFortunati();
+            aggiornaSerie();
+        }
+
+        function annullaSceltaFortunati() {
+            bozzaFortunati = null;
+            aggiornaFortunati();
+        }
+
+        function aggiornaFortunati() {
+            const inModifica = bozzaFortunati !== null;
+            const numeri = inModifica ? bozzaFortunati : numeriFortunati;
+            coloraGriglia('griglia-fortunati', numeri, CLASSE_FORTUNATO, inModifica);
+
+            document.getElementById('btn-scegli-fortunati').classList.toggle('hidden', inModifica);
+            document.getElementById('fortunati-vista').classList.toggle('hidden', inModifica);
+            document.getElementById('fortunati-modifica').classList.toggle('hidden', !inModifica);
+
+            if (inModifica) {
+                document.getElementById('fortunati-contatore').innerText = `${numeri.length}/${MAX_NUMERI} scelti`;
+                document.getElementById('btn-salva-fortunati').disabled = numeri.length !== MAX_NUMERI;
+            } else {
+                document.getElementById('fortunati-vista').innerHTML = numeriFortunati.length
+                    ? pallini(numeriFortunati, 'bg-amber-500 border-amber-300 text-gray-900')
+                    : '<span class="text-sm text-gray-500">Nessun numero salvato: premi la matita per sceglierli.</span>';
+            }
+        }
+
+        // --- NUMERI CASUALI ---
+        function generaCasuali() {
+            const estratti = [];
+            const caso = new Uint32Array(1);
+            while (estratti.length < MAX_NUMERI) {
+                crypto.getRandomValues(caso);
+                const numero = (caso[0] % 90) + 1;
+                if (!estratti.includes(numero)) estratti.push(numero);
+            }
+            // Restano salvati: se li giochi, la registrazione dell'esito sa quali erano
+            impostazioni.numeriCasuali = estratti.sort((a, b) => a - b);
+            salvaImpostazioni();
+
+            // Riavvia l'animazione dell'icona a ogni click
+            const icona = document.getElementById('icona-aggiorna');
+            icona.classList.remove('gira');
+            void icona.offsetWidth;
+            icona.classList.add('gira');
+
+            aggiornaCasuali();
+            aggiornaSerie();
+        }
+
+        function aggiornaCasuali() {
+            const numeri = impostazioni.numeriCasuali;
+            coloraGriglia('griglia-casuali', numeri, CLASSE_CASUALE, false);
+            document.getElementById('casuali-vista').innerHTML = numeri.length
+                ? pallini(numeri, 'bg-blue-500 border-blue-300 text-white')
+                : '<span class="text-sm text-gray-500">Premi il tasto aggiornamento per avere 3 numeri.</span>';
+        }
+
+        // --- LOGICA DI GIOCO ---
+        function logPlay(resultType) {
+            // Una sola registrazione al giorno: per correggere si usa "Annulla ultima azione"
+            if (state.ultimaGiocata === oggi()) {
+                showMessage("Giornata già registrata", "Hai già registrato l'esito di oggi. Se hai sbagliato bottone, usa «Annulla ultima azione» e registralo di nuovo.", 'info');
+                return;
+            }
+
+            // Massimo 30 giornate per mese di calendario
+            if (giocateDelMese(oggi().slice(0, 7)).length >= GIORNATE_MESE) {
+                showMessage("Mese completato", "Hai già registrato 30 giornate questo mese. Si riparte il 1° del mese prossimo.", 'info');
+                return;
+            }
+
+            // Controllo fondi: con meno di 1€ in cassa la giocata non viene registrata
+            if (state.cassa < 1) {
+                showMessage("Cassa Esaurita", "Il tuo budget è arrivato a zero. Se vuoi continuare, devi ricaricare o resettare il piano.");
+                return;
+            }
+
+            pushHistory();
+
+            // Costo fisso giornaliero
+            state.cassa -= 1;
+            state.speso += 1;
+            state.giorni += 1;
+            state.ultimaGiocata = oggi();
+
+            // Annota la giornata nel registro (calendario, statistiche, serie)
+            const serie = serieAttiva();
+            const numeriGiocati = serie === 'fortunati' ? numeriFortunati : serie === 'casuali' ? impostazioni.numeriCasuali : [];
+            state.registro.push({ data: oggi(), esito: resultType, serie, numeri: [...numeriGiocati] });
+
+            // Elaborazione esito
+            if (resultType === 2) {
+                // 2 Numeri: +2€ di vincita
+                state.cassa += 2;
+                state.vinto += 2;
+            } else if (resultType === 3) {
+                // 3 Numeri: +50€ di vincita
+                state.cassa += 50;
+                state.vinto += 50;
+
+                // Mostra il modal di Take Profit per i 3 numeri
+                setTimeout(() => {
+                    openModal('jackpot-modal');
+                }, 300); // Piccolo delay per far aggiornare i contatori dietro prima che appaia
+            }
+
+            state.cassa = arrotonda(state.cassa);
+            meseVisualizzato = oggi().slice(0, 7);
+            saveState();
+            updateUI();
+        }
+
+        // --- LOGICA PRELIEVO (TAKE PROFIT) ---
+        function executeTakeProfit() {
+            // Il prelievo toglie dalla cassa ma non incide su "speso" o "vinto" (è un ritiro): viene segnato a parte
+            if(state.cassa >= 30) {
+                pushHistory();
+                state.cassa = arrotonda(state.cassa - 30);
+                state.prelevato += 30;
+                saveState();
+                updateUI();
+                closeModal('jackpot-modal');
+                // Mostra un feedback
+                setTimeout(() => {
+                    showMessage("Prelievo Completato", "Hai prelevato con successo 30€. Ora i fondi rimanenti in cassa ti permettono di giocare a rischio zero.", 'ok');
+                }, 300);
+            } else {
+                closeModal('jackpot-modal');
+                setTimeout(() => {
+                    showMessage("Errore", "Fondi in cassa insufficienti per prelevare 30€.");
+                }, 300);
+            }
+        }
+
+        // --- RESET DATI ---
+        function resetData() {
+            // Lo stato precedente va nello storico: il reset si può annullare subito dopo
+            pushHistory();
+            state = { ...STATO_INIZIALE, registro: [] };
+            saveState();
+            updateUI();
+            closeModal('reset-modal');
+        }
+
+        // --- GESTIONE ANNULLA (UNDO) ---
+        function undoAction() {
+            if (stateHistory.length > 0) {
+                // Recupera l'ultimo stato salvato (completato per gli stati della versione precedente)
+                state = statoValido(stateHistory.pop());
+                saveState();
+                updateUI();
+            }
+        }
+
+        // --- GESTIONE MODIFICA CASSA ---
+        function openEditBalanceModal() {
+            document.getElementById('input-balance').value = state.cassa;
+            openModal('edit-balance-modal');
+        }
+
+        function saveNewBalance() {
+            const inputVal = document.getElementById('input-balance').value;
+            const newBalance = parseFloat(inputVal);
+
+            if (!isNaN(newBalance) && newBalance >= 0) {
+                pushHistory();
+                // La differenza resta visibile come rettifica, così speso/vinto non vengono falsati
+                state.rettifiche = arrotonda(state.rettifiche + newBalance - state.cassa);
+                state.cassa = arrotonda(newBalance);
+                saveState();
+                updateUI();
+                closeModal('edit-balance-modal');
+            }
+        }
+
+        // --- BACKUP: FILE LOCALE ---
+        function creaBackup() {
+            return {
+                app: 'tracker-10elotto',
+                versione: 1,
+                creato: new Date().toISOString(),
+                state,
+                numeriFortunati,
+                numeriCasuali: impostazioni.numeriCasuali
+            };
+        }
+
+        function scaricaBackup() {
+            const blob = new Blob([JSON.stringify(creaBackup(), null, 2)], { type: 'application/json' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `tracker-10elotto-backup-${oggi()}.json`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+        }
+
+        function caricaBackup(evento) {
+            const file = evento.target.files[0];
+            evento.target.value = ''; // permette di ricaricare lo stesso file
+            if (!file) return;
+            file.text()
+                .then(testo => chiediRipristino(JSON.parse(testo), 'questo file'))
+                .catch(() => showMessage("File non valido", "Il file scelto non è un backup del Tracker 10eLotto."));
+        }
+
+        function chiediRipristino(dati, provenienza) {
+            if (!dati || dati.app !== 'tracker-10elotto' || !dati.state || typeof dati.state !== 'object') {
+                showMessage("Backup non valido", "Il file non è un backup del Tracker 10eLotto.");
+                return;
+            }
+            backupDaRipristinare = dati;
+            const quando = dati.creato ? new Date(dati.creato).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' }) : 'data sconosciuta';
+            const giornate = registroValido(dati.state.registro).length;
+            document.getElementById('ripristino-testo').innerText =
+                `I dati attuali verranno sostituiti con quelli di ${provenienza} (salvato il ${quando}, ${giornate} giornate nel calendario, cassa ${euro(Number(dati.state.cassa) || 0)} €). Se cambi idea, subito dopo puoi usare «Annulla ultima azione».`;
+            openModal('ripristino-modal');
+        }
+
+        function confermaRipristino() {
+            if (!backupDaRipristinare) return;
+            pushHistory();
+            state = statoValido(backupDaRipristinare.state);
+            if (Array.isArray(backupDaRipristinare.numeriFortunati)) {
+                numeriFortunati = numeriValidi(backupDaRipristinare.numeriFortunati);
+                scrivi(CHIAVE_FORTUNATI, numeriFortunati);
+            }
+            if (Array.isArray(backupDaRipristinare.numeriCasuali)) {
+                impostazioni.numeriCasuali = numeriValidi(backupDaRipristinare.numeriCasuali);
+                salvaImpostazioni();
+            }
+            backupDaRipristinare = null;
+            saveState();
+            closeModal('ripristino-modal');
+            aggiornaFortunati();
+            aggiornaCasuali();
+            updateUI();
+            showMessage("Backup ripristinato", "I dati del backup sono stati caricati.", 'ok');
+        }
+
+        // --- BACKUP: GOOGLE DRIVE ---
+        let clientToken = null;
+        let tokenAccesso = null;
+        let scadenzaToken = 0;
+
+        function driveConfigurato() {
+            return Boolean(window.GOOGLE_CLIENT_ID);
+        }
+
+        function caricaGoogle() {
+            return new Promise((risolvi, rifiuta) => {
+                if (window.google && google.accounts && google.accounts.oauth2) return risolvi();
+                const script = document.createElement('script');
+                script.src = 'https://accounts.google.com/gsi/client';
+                script.onload = () => risolvi();
+                script.onerror = () => rifiuta(new Error("Impossibile collegarsi a Google: controlla la connessione."));
+                document.head.appendChild(script);
+            });
+        }
+
+        // Carica Google in anticipo: il login deve partire subito al click, o il browser blocca la finestra
+        function preparaDrive() {
+            if (driveConfigurato() && navigator.onLine) caricaGoogle().catch(() => {});
+        }
+
+        function ottieniToken() {
+            if (tokenAccesso && Date.now() < scadenzaToken) return Promise.resolve(tokenAccesso);
+            return caricaGoogle().then(() => new Promise((risolvi, rifiuta) => {
+                clientToken = google.accounts.oauth2.initTokenClient({
+                    client_id: window.GOOGLE_CLIENT_ID,
+                    scope: DRIVE_SCOPE,
+                    callback: (risposta) => {
+                        if (risposta.error) return rifiuta(new Error(risposta.error_description || risposta.error));
+                        tokenAccesso = risposta.access_token;
+                        scadenzaToken = Date.now() + (Number(risposta.expires_in) - 60) * 1000;
+                        risolvi(tokenAccesso);
+                    },
+                    error_callback: (errore) => rifiuta(new Error(errore.type === 'popup_closed' ? "Accesso a Google annullato." : "Accesso a Google non riuscito."))
+                });
+                clientToken.requestAccessToken();
+            }));
+        }
+
+        async function richiestaDrive(url, opzioni = {}) {
+            const token = await ottieniToken();
+            const risposta = await fetch(url, {
+                ...opzioni,
+                headers: { ...(opzioni.headers || {}), Authorization: `Bearer ${token}` }
+            });
+            if (risposta.status === 401) {
+                tokenAccesso = null;
+                throw new Error("L'accesso a Google è scaduto: riprova.");
+            }
+            if (!risposta.ok) throw new Error(`Google Drive ha risposto con un errore (${risposta.status}).`);
+            return risposta;
+        }
+
+        async function trovaFileDrive() {
+            const filtro = encodeURIComponent(`name='${DRIVE_NOME_FILE}' and trashed=false`);
+            const risposta = await richiestaDrive(`https://www.googleapis.com/drive/v3/files?q=${filtro}&spaces=drive&orderBy=modifiedTime desc&fields=files(id,modifiedTime)`);
+            const dati = await risposta.json();
+            return (dati.files && dati.files[0]) || null;
+        }
+
+        function bottoniDriveOccupati(occupati) {
+            document.getElementById('btn-drive-salva').disabled = occupati;
+            document.getElementById('btn-drive-ripristina').disabled = occupati;
+        }
+
+        async function salvaSuDrive() {
+            if (!driveConfigurato()) return mostraDriveNonConfigurato();
+            bottoniDriveOccupati(true);
+            try {
+                const contenuto = JSON.stringify(creaBackup(), null, 2);
+                const esistente = await trovaFileDrive();
+                if (esistente) {
+                    // Sovrascrive il backup precedente: su Drive resta sempre un solo file
+                    await richiestaDrive(`https://www.googleapis.com/upload/drive/v3/files/${esistente.id}?uploadType=media`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: contenuto
+                    });
+                } else {
+                    const confine = `tracker10elotto${Date.now()}`;
+                    const metadati = JSON.stringify({ name: DRIVE_NOME_FILE, mimeType: 'application/json' });
+                    const corpo = `--${confine}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadati}\r\n--${confine}\r\nContent-Type: application/json\r\n\r\n${contenuto}\r\n--${confine}--`;
+                    await richiestaDrive('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                        method: 'POST',
+                        headers: { 'Content-Type': `multipart/related; boundary=${confine}` },
+                        body: corpo
+                    });
+                }
+                impostazioni.ultimoBackupDrive = new Date().toISOString();
+                salvaImpostazioni();
+                aggiornaBackup();
+                showMessage("Backup salvato", `Il file "${DRIVE_NOME_FILE}" su Google Drive è stato aggiornato: il backup precedente è stato sovrascritto.`, 'ok');
+            } catch (errore) {
+                showMessage("Backup non riuscito", errore.message);
+            } finally {
+                bottoniDriveOccupati(false);
+            }
+        }
+
+        async function ripristinaDaDrive() {
+            if (!driveConfigurato()) return mostraDriveNonConfigurato();
+            bottoniDriveOccupati(true);
+            try {
+                const file = await trovaFileDrive();
+                if (!file) {
+                    showMessage("Nessun backup", "Su Google Drive non c'è ancora un backup di questa app.", 'info');
+                    return;
+                }
+                const risposta = await richiestaDrive(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`);
+                chiediRipristino(await risposta.json(), 'Google Drive');
+            } catch (errore) {
+                showMessage("Ripristino non riuscito", errore.message);
+            } finally {
+                bottoniDriveOccupati(false);
+            }
+        }
+
+        function mostraDriveNonConfigurato() {
+            showMessage("Google Drive non configurato", "Manca l'ID client di Google in config.js: le istruzioni sono nel README. Intanto puoi usare «Scarica file».", 'info');
+        }
+
+        function aggiornaBackup() {
+            const elStato = document.getElementById('backup-stato');
+            document.getElementById('backup-drive-nota').classList.toggle('hidden', driveConfigurato());
+            if (!impostazioni.ultimoBackupDrive) {
+                elStato.innerHTML = '<i class="fa-solid fa-circle-exclamation text-amber-400 mr-1"></i>Nessun backup su Google Drive.';
+                return;
+            }
+            const quando = new Date(impostazioni.ultimoBackupDrive);
+            const giorni = Math.floor((Date.now() - quando.getTime()) / 86400000);
+            const testo = quando.toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' });
+            // Dopo una settimana senza backup il promemoria diventa arancione
+            const icona = giorni >= 7
+                ? '<i class="fa-solid fa-circle-exclamation text-amber-400 mr-1"></i>'
+                : '<i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i>';
+            const fa = giorni === 0 ? 'oggi' : giorni === 1 ? 'ieri' : `${giorni} giorni fa`;
+            elStato.innerHTML = `${icona}Ultimo backup su Drive: ${testo} (${fa}).`;
+        }
+
+        // --- GESTIONE MODALS ---
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('hidden');
+                // Impedisce lo scrolling del body quando il modal è aperto
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+        }
+
+        // tipo: 'errore' (default), 'ok' oppure 'info' — cambia solo l'icona
+        function showMessage(title, bodyText, tipo = 'errore') {
+            const icone = {
+                errore: '<i class="fa-solid fa-triangle-exclamation"></i>',
+                ok: '<i class="fa-solid fa-circle-check"></i>',
+                info: '<i class="fa-solid fa-circle-info"></i>'
+            };
+            const colori = {
+                errore: 'text-red-500',
+                ok: 'text-emerald-400',
+                info: 'text-blue-400'
+            };
+            const elIcona = document.getElementById('msg-icon');
+            elIcona.innerHTML = icone[tipo] || icone.errore;
+            elIcona.className = `${colori[tipo] || colori.errore} text-4xl mb-4`;
+            document.getElementById('msg-title').innerText = title;
+            document.getElementById('msg-body').innerText = bodyText;
+            openModal('msg-modal');
+        }
+    </script>
+</body>
+</html>

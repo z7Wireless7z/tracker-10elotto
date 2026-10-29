@@ -1,0 +1,17 @@
+{
+    "name": "Tracker 10eLotto",
+    "short_name": "10eLotto",
+    "description": "Tracker della strategia Gruzzoletto al 10eLotto: cassa, calendario, statistiche e backup.",
+    "lang": "it",
+    "start_url": "./",
+    "scope": "./",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#111827",
+    "theme_color": "#1f2937",
+    "icons": [
+        { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+        { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+        { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    ]
+}
